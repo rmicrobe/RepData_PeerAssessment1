@@ -1,25 +1,168 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: "PA_template"
 output: 
-  html_document:
-    keep_md: true
+  html_document: 
+    keep_md: true 
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 ## Loading and preprocessing the data
 
+```{r preprocessing, echo=TRUE}
+
+# Unzip the .zip file
+library ("downloader")
+url = 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip'
+download(url, dest="dataset.zip", mode="wb") 
+unzip ("dataset.zip", exdir = "C://Users//ktkni//OneDrive//Desktop//project1")
+
+# Import text file.
+data = read.csv("activity.csv")
+```
+## What is mean total number of steps taken per day?  Calculate the sum, mean, and median of the number of steps.  Create a histogram of the frequency of the sum of the number of steps per day.
+
+```{r meantotal, echo=TRUE}
+
+#Calculate the total number of steps taken per day
+
+library (dplyr)
+
+sumofsteps <- data %>% group_by (date) %>% summarise (sum = sum (steps))
+
+sumofstepssum <- sumofsteps$sum
+
+# Calculate the total number of steps taken per day
+
+sum = sum (sumofstepssum, na.rm = TRUE)
+mean = mean (sumofstepssum, na.rm = TRUE)
+median = median (sumofstepssum, na.rm = TRUE)
+
+print (paste0("This is the sum:", sum))
+
+print (paste0("This is the mean:", mean))
+
+print (paste0("This is the median:", median))
+
+```
 
 
-## What is mean total number of steps taken per day?
+```{r histogram, echo=TRUE}
+hist (sumofstepssum, main = "Steps per Day", xlab = "Steps")
+```
+
+## What is the average daily activity pattern?  Which 5-minute interval contains the maximum number of steps?
+
+```{r averagenumber, echo=TRUE}
+
+#Calculate the total number of steps taken per day
+
+library (dplyr)
+
+averageofinterval <- data %>% group_by (interval) %>% summarise (average = mean (steps, na.rm = TRUE))
+
+plot (averageofinterval$interval, averageofinterval$average, type = "l", xlab = "5 Minute Intervals", ylab = "Average Steps Per Interval")
 
 
+```
 
-## What is the average daily activity pattern?
+```{r greatestinterval, echo=TRUE}
 
+#Calculate the total number of steps taken per day
 
+library (dplyr)
 
-## Imputing missing values
+averageofinterval <- data %>% group_by (interval) %>% summarise (average = mean (steps, na.rm = TRUE))
 
+maxaverage <- max (averageofinterval$average)
 
+highestinterval <- averageofinterval %>% filter (average == maxaverage)
+
+print (paste0("This is the interval that the highest average steps belong to: ", highestinterval$interval))
+
+```
+## Imputing missing values. First, calculate the mean of the NA.  Then, replace the NA with the mean of the interval.
+
+```{r numberofNA, echo = TRUE}
+numberofNA <- sum(is.na(data))
+
+print (paste0("This is the number of NA: ", numberofNA))
+```
+
+```{r replaceNAfunction, echo = TRUE}
+MeanIntervalReplaceNA<-function(interval){
+    averageofinterval[averageofinterval$interval==interval,]$average
+}
+```
+
+```{r replaceNA, echo=TRUE}
+datawithoutna <- data
+
+for(i in 1:nrow(datawithoutna)){
+    if(is.na(datawithoutna[i,]$steps)){
+        datawithoutna[i,]$steps <- MeanIntervalReplaceNA(datawithoutna[i,]$interval)
+    }
+}
+```
+
+```{r calculatesumNA, echo = TRUE}
+numberofwithoutNA <- sum(is.na(datawithoutna))
+
+print (paste0("This is the number of NA: ", numberofwithoutNA))
+```
+
+```{r averagetotalNoNA, echo=TRUE}
+
+#Calculate the total number of steps taken per day
+
+library (dplyr)
+
+sumofstepswithoutna <- datawithoutna %>% group_by (date) %>% summarise (sum = sum (steps))
+
+# Calculate the total number of steps taken per day
+
+sum1 = sum (sumofstepswithoutna$sum)
+mean1 = mean (sumofstepswithoutna$sum)
+median1 = median (sumofstepswithoutna$sum)
+
+print (paste0("This is the sum:", sum1))
+
+print (paste0("This is the mean:", mean1))
+
+print (paste0("This is the median:", median1))
+
+hist (sumofstepswithoutna$sum, main = "Steps per Day", xlab = "Steps")
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekdays/weekends to dataframe, echo = TRUE}
+datawithoutna$date <- as.Date(strptime(datawithoutna$date, format="%Y-%m-%d"))
+datawithoutna$day <- weekdays(datawithoutna$date)
+```
+
+```{r add name of weekdays/weekends to dataframe using for and if loop, echo = TRUE}
+
+for (i in 1:length(datawithoutna$day)){
+  if (datawithoutna$day[i] == "Saturday"|datawithoutna$day[i] == "Sunday"){
+    datawithoutna$timeofweek[i] <- "Weekend"
+  }else{
+    datawithoutna$timeofweek[i] <- "Weekday"
+  }
+}
+
+
+```
+
+```{r timeserieslatticegraph, echo = TRUE}
+
+library (dplyr)
+library (lattice)
+
+datawithoutnaforgraph <- datawithoutna %>% group_by (timeofweek, interval) %>% summarise (average = mean (steps))
+
+
+xyplot (average ~ interval|timeofweek, type = 'l', data = datawithoutnaforgraph, layout=c(1, 2), ylab = "Average Number of Steps")
+```
